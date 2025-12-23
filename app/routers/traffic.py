@@ -15,7 +15,7 @@ from ml.predict import TrafficClassifier
 
 from app.database import get_db
 from app.models import TrafficLog, BlockedIP
-from app.schemas import TrafficSample, TrafficPrediction, TrafficLogResponse, ErrorResponse
+from app.schemas import TrafficSample, TrafficPrediction, TrafficLogResponse
 
 # Initialize the ML model
 model_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'ml', 'model.pkl')
