@@ -1,7 +1,72 @@
 import joblib
 import numpy as np
 import pandas as pd
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tupleclass TrafficClassifier:
+    def __init__(self, model_path: str, encoders_path: str):
+        self.model = None
+        self.scaler = None
+        self.feature_names = []
+
+        try:
+            self.model = joblib.load(model_path)
+            artifacts = joblib.load(encoders_path)
+            self.scaler = artifacts['scaler']
+            self.feature_names = artifacts['feature_names']
+            print("✅ ML model loaded successfully")
+        except Exception as e:
+            print(f"⚠️ ML model not loaded: {e}")
+            print("⚠️ Running in fallback (no-ML) mode")
+
+    def preprocess(self, traffic_data: List[Dict]) -> np.ndarray:
+        if self.scaler is None or not self.feature_names:
+            return np.array([])
+
+        df = pd.DataFrame(traffic_data)
+
+        for col in self.feature_names:
+            if col not in df.columns:
+                df[col] = 0
+
+        X = df[self.feature_names].copy()
+        X = X.apply(pd.to_numeric, errors='coerce').fillna(0)
+
+        return self.scaler.transform(X)
+
+    def predict(self, traffic_data: List[Dict]) -> List[Dict]:
+        # 🔴 FALLBACK MODE (NO MODEL)
+        if self.model is None:
+            return [{
+                "prediction": 0,
+                "is_malicious": False,
+                "probability": 0.0
+            } for _ in traffic_data]
+
+        if not traffic_data:
+            return []
+
+        X = self.preprocess(traffic_data)
+
+        predictions = self.model.predict(X)
+
+        try:
+            probabilities = self.model.predict_proba(X)
+        except:
+            probabilities = None
+
+        results = []
+        for i, pred in enumerate(predictions):
+            result = {
+                "prediction": int(pred),
+                "is_malicious": bool(pred == 1)
+            }
+
+            if probabilities is not None:
+                result["probability"] = float(probabilities[i][1])
+
+            results.append(result)
+
+        return results
+
 import os
 
 class TrafficClassifier:
